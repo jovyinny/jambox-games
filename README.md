@@ -69,9 +69,8 @@ server/
 ## Setup
 
 ```bash
-npm install
-npm run ws:server
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 Open the local URL shown by Vite (usually `http://localhost:5173`).
@@ -173,14 +172,14 @@ VITE_YOUTUBE_API_KEY=your_key_here
 ## Scripts
 
 ```bash
-npm run dev
-npm run test
-npm run build
+pnpm dev
+pnpm test
+pnpm build
 ```
 
 ## WebSocket Lobby + Pairing
 
-- `npm run dev` now starts both the Vite app server and the lobby WebSocket server together.
+- `pnpm dev` starts both the Vite app server and the lobby WebSocket server together.
 - The browser connects to the lobby over the same app origin at `/ws`, so phone pairing works over local network URLs and Cloudflare tunnels without exposing a second public port.
 - In the app Setup screen, use **Lobby + Phone Pairing**:
   - Host/TV: connect, create a lobby, create one or more rooms.

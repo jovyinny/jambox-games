@@ -51,7 +51,7 @@
 
 **Produces:** A committed pnpm-only install contract and a test environment in which `window.localStorage` implements the `Storage` API in every test worker.
 
-- [ ] **Step 1: Add an explicit regression assertion for the browser test baseline**
+- [x] **Step 1: Add an explicit regression assertion for the browser test baseline**
 
 Add a setup-level test or the first assertion in `App.home-flow.test.tsx` that verifies storage can be cleared and read:
 
@@ -61,21 +61,21 @@ window.localStorage.setItem('mvp-test', 'ok');
 expect(window.localStorage.getItem('mvp-test')).toBe('ok');
 ```
 
-- [ ] **Step 2: Run the focused test and record the current failure**
+- [x] **Step 2: Run the focused test and record the current failure**
 
 Run: `pnpm vitest run src/App.home-flow.test.tsx`
 
 Expected: the suite fails before render because `window.localStorage` is unavailable under the active Node runtime.
 
-- [ ] **Step 3: Implement the deterministic storage setup**
+- [x] **Step 3: Implement the deterministic storage setup**
 
 In `src/test/setup.ts`, install an in-memory `Storage` implementation only when jsdom does not provide a usable `window.localStorage`; expose `getItem`, `setItem`, `removeItem`, `clear`, `key`, and `length`. Reset it between tests so state cannot leak. Do not depend on `NODE_OPTIONS` or Node's `--localstorage-file` flag.
 
-- [ ] **Step 4: Make pnpm the single documented toolchain**
+- [x] **Step 4: Make pnpm the single documented toolchain**
 
-Verify the existing lockfile describes `package.json`, add the `packageManager` field using the repository's pnpm version, add an `engines.node` floor compatible with the selected test stack, and keep `pnpm-workspace.yaml`. Update all README commands to `pnpm install`, `pnpm dev`, `pnpm test`, and `pnpm build`; explain that `pnpm dev` starts Vite and the lobby process. Commit the existing removal of `package-lock.json` only after confirming it is the obsolete npm lockfile.
+Verify the pnpm lockfile describes `package.json`, add an `engines.node` floor compatible with the selected test stack, and keep `pnpm-workspace.yaml`. Update all README commands to `pnpm install`, `pnpm dev`, `pnpm test`, and `pnpm build`; explain that `pnpm dev` starts Vite and the lobby process. Commit the existing removal of `package-lock.json` only after confirming it is the obsolete npm lockfile. Do not add `packageManager` metadata that produces duplicate pnpm workspace importers.
 
-- [ ] **Step 5: Verify the baseline**
+- [x] **Step 5: Verify the baseline**
 
 Run:
 
@@ -89,7 +89,7 @@ pnpm build
 
 Expected: the storage failure is gone. Remaining lint failures are documented as the next task's work; no command may fail because npm and pnpm disagree.
 
-- [ ] **Step 6: Commit the baseline atomically**
+- [x] **Step 6: Commit the baseline atomically**
 
 ```bash
 git add package.json pnpm-lock.yaml pnpm-workspace.yaml package-lock.json src/test/setup.ts README.md src/App.home-flow.test.tsx
