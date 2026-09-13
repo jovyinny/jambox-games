@@ -63,6 +63,48 @@ Every atomic implementation task follows test-first work where behavior changes,
 4. Exercise one complete round in Jam Hero, On Beat, and Know Your Lyrics.
 5. Verify missing Spotify/YouTube credentials show actionable setup states and do not block a bundled game.
 
+## Key implementation checkpoints
+
+### Checkpoint 1: Toolchain is reproducible
+
+**Deliverable:** pnpm is the only package workflow and the test runtime supplies browser storage deterministically.
+
+**Exit evidence:** a clean checkout can run `pnpm install --frozen-lockfile`, then `pnpm lint`, `pnpm test`, and `pnpm build`; the App home-flow suite runs without `localStorage` failures.
+
+**Commit boundary:** package-manager metadata, documentation, and the test-environment fix are committed together because they establish one reproducible development baseline.
+
+### Checkpoint 2: Same-origin host/phone transport works
+
+**Deliverable:** the Node runtime owns `/ws` and `/api/transcribe` in production, while Vite proxies both paths in development; endpoint resolution defaults to the browser origin.
+
+**Exit evidence:** unit tests cover HTTP and WebSocket URL derivation for HTTP, HTTPS, and explicit override cases. A host and phone opened through the Vite LAN URL join the same lobby without setting `VITE_WS_URL`; a phone transcription request reaches the host API rather than phone-local `localhost`.
+
+**Commit boundary:** server routing, Vite proxy configuration, endpoint utility changes, and their tests are committed together.
+
+### Checkpoint 3: Credential-free game loops are reliable
+
+**Deliverable:** pairing, Jam Hero, On Beat, and bundled-track Know Your Lyrics navigate from setup through gameplay and results with safe retry/back behavior.
+
+**Exit evidence:** automated tests cover every route transition and the host/phone message contract needed by On Beat and Lyrics. Manual LAN smoke testing demonstrates two paired phones completing one round in each game; denied camera/microphone permission shows recovery UI and does not strand the session.
+
+**Commit boundary:** one commit per independently testable game-flow correction. Do not mix flow fixes with external-service integration work.
+
+### Checkpoint 4: External integrations fail safely
+
+**Deliverable:** Spotify and YouTube setup, authorization, API, quota, and playback failures remain isolated to their respective setup flows.
+
+**Exit evidence:** tests cover missing configuration and failed upstream responses. Manual testing verifies a missing key/client ID presents actionable guidance, and the user can return to the menu or launch a bundled game without a page reload.
+
+**Commit boundary:** Spotify and YouTube corrections are separate commits because their configuration and failure modes are independent.
+
+### Checkpoint 5: Release candidate is usable on phones
+
+**Deliverable:** concise local/LAN and hosted-runtime documentation, plus a measured decision about code splitting.
+
+**Exit evidence:** the final `pnpm lint`, `pnpm test`, and `pnpm build` all succeed. The LAN smoke script succeeds on the intended host browser and two phones. Record the production bundle sizes and either keep the current chunks with observed acceptable phone load time or add only the splits justified by the measurement.
+
+**Commit boundary:** release documentation and any measured performance fix are separate atomic commits.
+
 ## Commit policy
 
 After each concrete, independently verifiable change, make one atomic commit. Commit messages have a concise subject and a body of one or two concise lines, with no co-author attribution. Existing unrelated working-tree changes are never staged or included.
