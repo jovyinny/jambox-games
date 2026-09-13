@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 .worktrees/
+.pnpm-store/
 dist
 dist-ssr
 output
