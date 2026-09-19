@@ -169,7 +169,7 @@ Follow-up coverage retained for Tasks 5–6: camera start/stop/restart and succe
 
 **Produces:** `getRuntimeWebSocketUrl(origin, override?)` and `getRuntimeHttpBaseUrl(origin, override?)`, which return same-origin paths by default and derive HTTP/HTTPS from the explicit WebSocket override.
 
-- [ ] **Step 1: Write endpoint contract tests**
+- [x] **Step 1: Write endpoint contract tests**
 
 Cover these exact cases:
 
@@ -180,23 +180,23 @@ expect(getRuntimeHttpBaseUrl('https://play.example.com')).toBe('https://play.exa
 expect(getRuntimeHttpBaseUrl('https://ignored.example', 'wss://api.example/ws')).toBe('https://api.example');
 ```
 
-- [ ] **Step 2: Run the focused tests to verify the current localhost defect**
+- [x] **Step 2: Run the focused tests to verify the current localhost defect**
 
 Run: `pnpm vitest run src/network/runtimeOrigin.test.ts`
 
 Expected: failure because the module and same-origin HTTP behavior do not exist; current `httpBase.ts` resolves to `http://localhost:8080`.
 
-- [ ] **Step 3: Implement the pure URL utility and adopt it**
+- [x] **Step 3: Implement the pure URL utility and adopt it**
 
 Use `new URL()` to set protocol and `/ws` pathname without retaining search/hash. Browser callers pass `window.location.origin`; server-side fallback is only for SSR/test safety and is never used by a phone. Replace local `defaultWsUrl` and `DEFAULT_WS_URL` behavior with this utility.
 
-- [ ] **Step 4: Verify endpoint behavior**
+- [x] **Step 4: Verify endpoint behavior**
 
 Run: `pnpm vitest run src/network/runtimeOrigin.test.ts src/components/lobby/LobbyPairingPanel.test.tsx`
 
 Expected: endpoint cases and existing pairing-link tests pass.
 
-- [ ] **Step 5: Commit the client endpoint contract**
+- [x] **Step 5: Commit the client endpoint contract**
 
 ```bash
 git add src/network/runtimeOrigin.ts src/network/runtimeOrigin.test.ts src/network/httpBase.ts src/lobby/LobbySessionProvider.tsx

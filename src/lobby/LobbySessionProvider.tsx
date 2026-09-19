@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { LobbyClient } from '../network/lobbyClient';
+import { getRuntimeWebSocketUrl } from '../network/runtimeOrigin';
 import type {
   LyricsAttemptSnapshot,
   LyricsLiveState,
@@ -18,19 +19,6 @@ import type {
 
 function normalizeCode(value: string) {
   return value.trim().toUpperCase();
-}
-
-function defaultWsUrl() {
-  if (typeof window === 'undefined') {
-    return 'ws://localhost:5173/ws';
-  }
-
-  const origin = new URL(window.location.origin);
-  origin.protocol = origin.protocol === 'https:' ? 'wss:' : 'ws:';
-  origin.pathname = '/ws';
-  origin.search = '';
-  origin.hash = '';
-  return origin.toString();
 }
 
 import { LobbySessionContext, type LobbySessionValue, type SelectedTrackPayload } from './useLobbySession';
@@ -49,7 +37,10 @@ export function LobbySessionProvider({ children }: { children: ReactNode }) {
   const [lyricsState, setLyricsState] = useState<LyricsLiveState | null>(null);
   const [lyricsAttempts, setLyricsAttempts] = useState<LyricsAttemptSnapshot[]>([]);
 
-  const wsUrl = useMemo(() => import.meta.env.VITE_WS_URL || defaultWsUrl(), []);
+  const wsUrl = useMemo(() => getRuntimeWebSocketUrl(
+    typeof window === 'undefined' ? 'http://localhost:5173' : window.location.origin,
+    import.meta.env.VITE_WS_URL,
+  ), []);
   const clientRef = useRef<LobbyClient | null>(null);
   const accessPoint = lobby?.rooms[0] || null;
 
