@@ -56,6 +56,10 @@ export async function acquireSharedStream(): Promise<MediaStream> {
         },
       })
       .then((stream) => {
+        if (activeConsumers === 0) {
+          stream.getTracks().forEach((track) => track.stop());
+          return stream;
+        }
         sharedStream = stream;
         return stream;
       })

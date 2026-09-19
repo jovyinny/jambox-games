@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CameraView } from './CameraView';
 import { __resetCameraViewSharedStateForTests } from './cameraStream';
@@ -84,5 +84,37 @@ describe('CameraView', () => {
     });
 
     expect(trackStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not report camera readiness before permission and playback succeed', async () => {
+    let grant!: (stream: MediaStream) => void;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(new Promise((resolve) => { grant = resolve; }));
+    const ready = vi.fn();
+    const { unmount } = render(<CameraView isRunning onVideoElementChange={ready} />);
+    expect(ready.mock.calls.some(([video]) => video !== null)).toBe(false);
+    await act(async () => { grant(fakeStream); });
+    expect(ready).toHaveBeenCalledWith(expect.any(HTMLVideoElement));
+    unmount();
+  });
+
+  it('releases a stream granted after its last consumer has left', async () => {
+    let grant!: (stream: MediaStream) => void;
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockReturnValue(new Promise((resolve) => { grant = resolve; }));
+    const { unmount } = render(<CameraView isRunning />);
+    unmount();
+    act(() => { vi.advanceTimersByTime(900); });
+    await act(async () => { grant(fakeStream); });
+    expect(trackStop).toHaveBeenCalledOnce();
+  });
+
+  it('retries a denied camera request without reloading the app', async () => {
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new Error('Denied'));
+    const ready = vi.fn();
+    const { unmount } = render(<CameraView isRunning onVideoElementChange={ready} />);
+    await act(async () => { await Promise.resolve(); });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Retry Camera' })); });
+    expect(ready).toHaveBeenCalledWith(expect.any(HTMLVideoElement));
+    expect(screen.queryByText(/Unable to access webcam/)).not.toBeInTheDocument();
+    unmount();
   });
 });

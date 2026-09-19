@@ -12,6 +12,7 @@ export function CameraView({ isRunning, children, onVideoElementChange }: Camera
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hasConsumerRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -25,12 +26,11 @@ export function CameraView({ isRunning, children, onVideoElementChange }: Camera
       container.appendChild(video);
     }
 
-    onVideoElementChange?.(video);
-
     return () => {
       if (video.parentElement === container) {
         container.removeChild(video);
       }
+      onVideoElementChange?.(null);
     };
   }, [onVideoElementChange]);
 
@@ -43,6 +43,7 @@ export function CameraView({ isRunning, children, onVideoElementChange }: Camera
           releaseStreamConsumer();
           hasConsumerRef.current = false;
         }
+        onVideoElementChange?.(null);
         return;
       }
 
@@ -66,11 +67,13 @@ export function CameraView({ isRunning, children, onVideoElementChange }: Camera
         }
         onVideoElementChange?.(video);
       } catch {
+        if (cancelled) return;
         if (hasConsumerRef.current) {
           releaseStreamConsumer();
           hasConsumerRef.current = false;
         }
-        setErrorMessage('Unable to access webcam. Check permissions and reload.');
+        onVideoElementChange?.(null);
+        setErrorMessage('Unable to access webcam. Check browser permissions and retry.');
       }
     };
 
@@ -83,11 +86,16 @@ export function CameraView({ isRunning, children, onVideoElementChange }: Camera
         hasConsumerRef.current = false;
       }
     };
-  }, [isRunning, onVideoElementChange]);
+  }, [isRunning, onVideoElementChange, retryCount]);
 
   return (
     <section className="camera-view" aria-label="Camera View">
-      {errorMessage ? <p className="camera-error">{errorMessage}</p> : null}
+      {errorMessage ? <div className="camera-error">
+        <p>{errorMessage}</p>
+        <button type="button" className="phase-action" disabled={!isRunning} onClick={() => { setErrorMessage(null); setRetryCount((count) => count + 1); }}>
+          Retry Camera
+        </button>
+      </div> : null}
       <div ref={containerRef} className="camera-video-host" />
       {children ? children(sharedVideoElement) : null}
     </section>
