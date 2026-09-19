@@ -21,25 +21,30 @@ const ZONE_X: Record<ZoneId, string> = {
 let nextId = 0;
 
 export function TimingCallout() {
-  const lanes = useAppStore((s) => s.lanes);
   const [callouts, setCallouts] = useState<CalloutEntry[]>([]);
 
   // Watch for grade changes
   useEffect(() => {
-    const zones: ZoneId[] = ['left', 'middle', 'right'];
-    zones.forEach((zone) => {
-      const grade = lanes[zone].lastGrade;
-      if (grade && grade !== 'miss') {
-        const entry: CalloutEntry = {
-          id: nextId++,
-          grade,
-          zone,
-          timestamp: Date.now(),
-        };
-        setCallouts((prev) => [...prev, entry]);
-      }
+    return useAppStore.subscribe((state, previous) => {
+      const zones: ZoneId[] = ['left', 'middle', 'right'];
+      const entries: CalloutEntry[] = [];
+      zones.forEach((zone) => {
+        const lane = state.lanes[zone];
+        const grade = lane.lastGrade;
+        if (lane.hitCount === previous.lanes[zone].hitCount) return;
+        if (grade && grade !== 'miss') {
+          const entry: CalloutEntry = {
+            id: nextId++,
+            grade,
+            zone,
+            timestamp: Date.now(),
+          };
+          entries.push(entry);
+        }
+      });
+      if (entries.length) setCallouts((prev) => [...prev, ...entries]);
     });
-  }, [lanes.left.lastGrade, lanes.middle.lastGrade, lanes.right.lastGrade, lanes.left.hitCount, lanes.middle.hitCount, lanes.right.hitCount]);
+  }, []);
 
   // Cleanup expired callouts
   useEffect(() => {

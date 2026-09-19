@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLobbySession } from '../../lobby/useLobbySession';
 import type { DeviceRole } from '../../network/lobbyProtocol';
 
@@ -61,16 +61,12 @@ export function LobbyPairingPanel() {
     pairPhone,
   } = useLobbySession();
 
-  const joinLinks = useMemo(() => {
-    if (!accessPoint || !lobby?.code) {
-      return null;
-    }
-
-    return {
-      player1Url: getJoinUrl(lobby.code, 1),
-      player2Url: getJoinUrl(lobby.code, 2),
-    };
-  }, [accessPoint, lobby?.code]);
+  const joinLinks = !accessPoint || !lobby?.code
+    ? null
+    : {
+        player1Url: getJoinUrl(lobby.code, 1),
+        player2Url: getJoinUrl(lobby.code, 2),
+      };
 
   useEffect(() => {
     if (typeof window === 'undefined' || role !== 'phone' || !pairedRoom || !playerSlot) {

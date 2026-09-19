@@ -51,7 +51,8 @@ import { buildVerzuzRoundDeck, type VerzuzPlayer, type VerzuzRoundResult } from 
 import { type OnBeatDifficulty, type OnBeatResultSummary } from './game/onBeat';
 import { type LyricsResultSummary, type LyricsTrack } from './game/lyrics';
 import { LYRICS_TRACKS } from './game/lyricsCatalog.generated';
-import { LobbySessionProvider, useLobbySession } from './lobby/useLobbySession';
+import { useLobbySession } from './lobby/useLobbySession';
+import { LobbySessionProvider } from './lobby/LobbySessionProvider';
 import {
   beginSpotifyLogin,
   clearSpotifyConnection,
@@ -235,10 +236,9 @@ function AppContent() {
   const [vsScores, setVsScores] = useState<[number, number]>([0, 0]);
   const [vsRoundIndex, setVsRoundIndex] = useState(0);
   const [vsRoundHistory, setVsRoundHistory] = useState<VerzuzRoundResult[]>([]);
-  const [vsSpotifyConnections, setVsSpotifyConnections] = useState<Array<SpotifyConnection | null>>([
-    null,
-    null,
-  ]);
+  const [vsSpotifyConnections, setVsSpotifyConnections] = useState<Array<SpotifyConnection | null>>(
+    () => [loadSpotifyConnection(0), loadSpotifyConnection(1)],
+  );
   const [vsRoundTracks, setVsRoundTracks] = useState<Record<number, SpotifyTrackSummary | null>>({});
   const [onBeatDifficulty] = useState<OnBeatDifficulty>('level1');
   const [onBeatResult, setOnBeatResult] = useState<OnBeatResultSummary | null>(null);
@@ -564,7 +564,6 @@ function AppContent() {
   );
 
   useEffect(() => {
-    setVsSpotifyConnections([loadSpotifyConnection(0), loadSpotifyConnection(1)]);
     void completeSpotifyLoginFromUrl()
       .then((result) => {
         if (!result) {
@@ -644,13 +643,6 @@ function AppContent() {
     tutorialLaneConfirmed,
   ]);
 
-  // Permissions readiness checks
-  useEffect(() => {
-    if (gamePhase === 'permissions' && isSessionRunning && videoElement) {
-      setCameraReady(true);
-    }
-  }, [gamePhase, isSessionRunning, videoElement]);
-
   useEffect(() => {
     if (gamePhase === 'permissions' && cameraReady && audioReady) {
       setGamePhase('calibration');
@@ -715,13 +707,6 @@ function AppContent() {
       mappingStateRef.current = createInitialMappingState();
       previousCountdownRemainingMsRef.current = null;
       conductorRef.current = createConductor();
-      setLoopArrangement(
-        computeLoopArrangement({
-          nowSeconds: 0,
-          jamStartSeconds: 0,
-          bpm,
-        }),
-      );
       setDiagnostics({
         trackTitle: currentTrack.title,
         currentChord: 'Am',
@@ -753,7 +738,7 @@ function AppContent() {
     }, msPerChord);
 
     return () => window.clearInterval(intervalId);
-  }, [bpm, currentTrack.title, isSessionRunning, setDiagnostics]);
+  }, [bpm, currentTrack.title, isSessionRunning, setDiagnostics, updateLane]);
 
   // Midnight Soul backing groove: provides the continuous pocket so player sounds sit on top of a stable bed.
   useEffect(() => {
@@ -854,7 +839,6 @@ function AppContent() {
   // Main inference + event loop
   useEffect(() => {
     if (!isSessionRunning || !videoElement) {
-      setPoses([]);
       zoningStateRef.current = createInitialZoningState();
       featureStateRef.current = createInitialFeatureState();
       setDiagnostics({
@@ -1233,13 +1217,20 @@ function AppContent() {
       return;
     }
     setVideoElement(video);
+    setCameraReady(Boolean(video && isSessionRunning));
   }, [gamePhase, isSessionRunning]);
 
-  useEffect(() => {
+  // Reset render state together when the external session transitions to stopped.
+  const [previousSessionRunning, setPreviousSessionRunning] = useState(isSessionRunning);
+  if (previousSessionRunning !== isSessionRunning) {
+    setPreviousSessionRunning(isSessionRunning);
     if (!isSessionRunning) {
       setVideoElement(null);
+      setCameraReady(false);
+      setPoses([]);
+      setLoopArrangement(computeLoopArrangement({ nowSeconds: 0, jamStartSeconds: 0, bpm }));
     }
-  }, [isSessionRunning]);
+  }
 
   const countdownUrgentSecond =
     gamePhase === 'jam' && jamTimeRemainingMs > 0 && jamTimeRemainingMs <= 10_000

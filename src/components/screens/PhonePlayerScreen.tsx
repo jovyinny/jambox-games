@@ -772,13 +772,15 @@ export function PhonePlayerScreen({ lobbyCode, playerSlot, expectedGame = null }
     sendOnBeatAttempt,
     sendLyricsAttempt,
   } = useLobbySession();
-  const [spotifyName, setSpotifyName] = useState('');
+  const [spotifyName, setSpotifyName] = useState(() => loadSpotifyConnection(playerSlot - 1)?.profileName ?? '');
   const [managedPlaylist, setManagedPlaylist] = useState<SpotifyPlaylistSummary | null>(null);
   const [playlistTracks, setPlaylistTracks] = useState<SpotifyTrackSummary[]>([]);
   const [searchResults, setSearchResults] = useState<SpotifyTrackSummary[]>([]);
   const [query, setQuery] = useState('');
-  const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState('Connect Spotify to prepare your Verzuz queue.');
+  const [isBusy, setIsBusy] = useState(() => Boolean(spotifyName) && !onBeatState && !lyricsState);
+  const [status, setStatus] = useState(() => spotifyName
+    ? `Syncing ${VERZUZ_PLAYLIST_NAME}...`
+    : 'Connect Spotify to prepare your Verzuz queue.');
 
   const refreshManagedPlaylist = useCallback(async () => {
     const connection = loadSpotifyConnection(playerSlot - 1);
@@ -827,8 +829,31 @@ export function PhonePlayerScreen({ lobbyCode, playerSlot, expectedGame = null }
       return;
     }
 
-    void refreshManagedPlaylist();
-  }, [lyricsState?.game, onBeatState?.game, refreshManagedPlaylist]);
+    const connection = loadSpotifyConnection(playerSlot - 1);
+    if (!connection) return;
+    let cancelled = false;
+    void ensureVerzuzPlaylist(connection)
+      .then(async (playlist) => ({
+        playlist,
+        tracks: await fetchSpotifyPlaylistTracks(connection, playlist.id),
+      }))
+      .then(({ playlist, tracks }) => {
+        if (cancelled) return;
+        setSpotifyName(connection.profileName);
+        setManagedPlaylist({ ...playlist, trackCount: tracks.length });
+        setPlaylistTracks(tracks);
+        setStatus(tracks.length > 0
+          ? `${tracks.length} songs queued. First song is next for the round.`
+          : `Your ${VERZUZ_PLAYLIST_NAME} playlist is empty. Search and add songs from Spotify.`);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus(`Could not load ${VERZUZ_PLAYLIST_NAME}. Reconnect Spotify and try again.`);
+      })
+      .finally(() => {
+        if (!cancelled) setIsBusy(false);
+      });
+    return () => { cancelled = true; };
+  }, [lyricsState?.game, onBeatState?.game, playerSlot]);
 
   const runSearch = async () => {
     const connection = loadSpotifyConnection(playerSlot - 1);

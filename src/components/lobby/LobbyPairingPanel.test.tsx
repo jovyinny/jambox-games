@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LobbySessionProvider } from '../../lobby/useLobbySession';
+import { LobbySessionProvider } from '../../lobby/LobbySessionProvider';
 import { LobbyPairingPanel } from './LobbyPairingPanel';
 
 describe('LobbyPairingPanel', () => {

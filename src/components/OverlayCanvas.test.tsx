@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { drawNeonOverlay, OverlayCanvas } from './OverlayCanvas';
+import { OverlayCanvas } from './OverlayCanvas';
+import { drawNeonOverlay } from './drawNeonOverlay';
 import { render } from '@testing-library/react';
 
 describe('drawNeonOverlay', () => {

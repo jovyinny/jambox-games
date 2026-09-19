@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   evaluateLyricsCue,
   summarizeLyricsHeadToHead,
@@ -55,7 +55,7 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
   const [hostTranscriptStatus, setHostTranscriptStatus] = useState('Laptop mic idle.');
   const [hostTranscriptCount, setHostTranscriptCount] = useState(0);
   const [cueResultsByPlayer, setCueResultsByPlayer] = useState<Record<LyricsPlayerSlot, Array<LyricsCueResult | null>>>(
-    cueResultsByPlayerRef.current,
+    () => createPlayerMatrix(track.cues.length),
   );
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
     };
   }, []);
 
-  const applyAttempt = (
+  const applyAttempt = useCallback((
     playerSlot: LyricsPlayerSlot,
     cueIndex: number,
     transcript: string,
@@ -93,7 +93,7 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
         2: [...cueResultsByPlayerRef.current[2]],
       });
     }
-  };
+  }, [track.cues]);
 
   const finishGame = () => {
     if (hasCompletedRef.current) {
@@ -223,14 +223,14 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
         const message = error instanceof Error ? error.message : 'Laptop transcription failed.';
         setHostTranscriptStatus(message);
       });
-  }, [activeCueIndex, countdownDurationMs, gameState, hostMicStatus, sessionId, track.cues]);
+  }, [activeCueIndex, applyAttempt, countdownDurationMs, gameState, hostMicStatus, sessionId, track.cues]);
 
   useEffect(() => {
     const attemptsForSession = lyricsAttempts.filter((attempt) => attempt.sessionId === sessionId);
     attemptsForSession.forEach((attempt) => {
       applyAttempt(attempt.playerSlot, attempt.cueIndex, attempt.transcript, attempt.detectedAtMs);
     });
-  }, [lyricsAttempts, sessionId]);
+  }, [applyAttempt, lyricsAttempts, sessionId]);
 
   const updateLoop = (now: number) => {
     const startTime = startTimeRef.current;

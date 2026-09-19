@@ -1,6 +1,7 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CameraView, __resetCameraViewSharedStateForTests } from './CameraView';
+import { CameraView } from './CameraView';
+import { __resetCameraViewSharedStateForTests } from './cameraStream';
 
 describe('CameraView', () => {
   const trackStop = vi.fn();
@@ -24,6 +25,7 @@ describe('CameraView', () => {
     });
 
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
   });
 
   afterEach(() => {

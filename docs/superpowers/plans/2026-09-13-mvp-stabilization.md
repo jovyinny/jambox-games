@@ -27,7 +27,7 @@
 - `src/network/runtimeOrigin.ts` — pure same-origin HTTP/WebSocket URL construction and explicit override support.
 - `src/network/runtimeOrigin.test.ts` — endpoint resolution regression tests.
 - `src/network/httpBase.ts` — transcription base URL adapter using `runtimeOrigin`.
-- `src/lobby/useLobbySession.tsx` — lobby client consuming the centralized WebSocket URL.
+- `src/lobby/LobbySessionProvider.tsx` — lobby client consuming the centralized WebSocket URL.
 - `vite.config.ts` — development proxy for `/ws` and `/api`.
 - `server/ws-lobby-server.mjs` — production Node runtime, static asset fallback, `/api/transcribe`, and WebSocket upgrade.
 - `server/ws-lobby-server.test.mjs` — HTTP/runtime integration tests for health, static fallback, and safe transcription errors.
@@ -115,25 +115,25 @@ git commit -m "chore: standardize pnpm test baseline" -m "Provide deterministic 
 
 **Produces:** A zero-error, zero-warning lint run with behavior-preserving lifecycle tests.
 
-- [ ] **Step 1: Add focused lifecycle tests before refactoring**
+- [x] **Step 1: Add focused lifecycle tests**
 
 Extend existing tests to cover the state transitions currently initialized or reset inside effects: route changes in `App.home-flow.test.tsx`, initial lyrics result state in `LyricsGameScreen`, automatic YouTube loading in `LyricsSetupScreen`, Spotify playback reset in `VsBattleScreen`, and phone playlist refresh in `PhonePlayerScreen`.
 
-- [ ] **Step 2: Run the targeted tests and lint to capture current errors**
+- [x] **Step 2: Run the targeted tests and lint to capture current errors**
 
 Run: `pnpm lint` and the new focused tests.
 
 Expected: React hook rules report synchronous state-setting effects, render-time ref access, manual memoization dependency mismatch, and non-component exports.
 
-- [ ] **Step 3: Move derived and reset state to explicit boundaries**
+- [x] **Step 3: Move derived and reset state to explicit boundaries**
 
 Replace each synchronous reset effect with one of: a lazy initial state keyed by props, a reducer/action invoked by the route or user event that changes the session, or an asynchronous subscription callback. In particular, do not read `cueResultsByPlayerRef.current` while initializing render state in `LyricsGameScreen`; create the initial matrix with a lazy `useState` initializer and synchronize the ref after state creation.
 
-- [ ] **Step 4: Make hook dependencies and exports structurally correct**
+- [x] **Step 4: Make hook dependencies and exports structurally correct**
 
 Use `useCallback`/`useMemo` only when their complete dependencies are stable, include the actual referenced values in effects, and move non-component test-reset exports from `CameraView`, `OverlayCanvas`, and `useLobbySession` into focused helper modules. Do not disable ESLint or React Compiler rules.
 
-- [ ] **Step 5: Verify behavior and all static gates**
+- [x] **Step 5: Verify behavior and all static gates**
 
 Run:
 
@@ -146,12 +146,16 @@ pnpm build
 
 Expected: all commands exit zero with no lint warnings.
 
-- [ ] **Step 6: Commit the lint stabilization**
+- [x] **Step 6: Commit the lint stabilization**
 
 ```bash
 git add src/App.tsx src/components src/lobby src/test
 git commit -m "fix: stabilize React screen lifecycles" -m "Remove invalid effect and memoization patterns."
 ```
+
+Task 2 verification (2026-09-19): `pnpm lint` exits zero without warnings; `pnpm test` passes 110 tests across 41 files; `pnpm build` succeeds with the existing large-chunk advisory. Independent review caught a hidden phone playlist failure; its failure-and-retry test was confirmed red before the fix and green afterward. Other lifecycle coverage was added alongside refactoring, rather than entirely beforehand. Nested worktrees are excluded from lint/test discovery; helper extractions preserve camera/drawing behavior.
+
+Follow-up coverage retained for Tasks 5–6: camera start/stop/restart and successful Spotify autoplay/cancelled transfer across rounds. Hardware/LAN and real Spotify checks are not proven by these unit tests.
 
 ### Task 3: Centralize same-origin endpoint construction
 
@@ -159,7 +163,7 @@ git commit -m "fix: stabilize React screen lifecycles" -m "Remove invalid effect
 - Create: `src/network/runtimeOrigin.ts`
 - Create: `src/network/runtimeOrigin.test.ts`
 - Modify: `src/network/httpBase.ts`
-- Modify: `src/lobby/useLobbySession.tsx`
+- Modify: `src/lobby/LobbySessionProvider.tsx`
 
 **Consumes:** `window.location.origin` and optional `VITE_WS_URL`.
 
@@ -195,7 +199,7 @@ Expected: endpoint cases and existing pairing-link tests pass.
 - [ ] **Step 5: Commit the client endpoint contract**
 
 ```bash
-git add src/network/runtimeOrigin.ts src/network/runtimeOrigin.test.ts src/network/httpBase.ts src/lobby/useLobbySession.tsx
+git add src/network/runtimeOrigin.ts src/network/runtimeOrigin.test.ts src/network/httpBase.ts src/lobby/LobbySessionProvider.tsx
 git commit -m "fix: derive phone endpoints from origin" -m "Keep local and hosted clients on one runtime contract."
 ```
 

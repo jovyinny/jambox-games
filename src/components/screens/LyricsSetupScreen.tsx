@@ -26,7 +26,7 @@ export function LyricsSetupScreen({
 }: LyricsSetupScreenProps) {
   const [query, setQuery] = useState('');
   const [options, setOptions] = useState<YoutubeInstrumentalOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => hasYoutubeApiKey());
   const [isPreparing, setIsPreparing] = useState(false);
   const [preparingId, setPreparingId] = useState('');
   const [error, setError] = useState('');
@@ -36,20 +36,24 @@ export function LyricsSetupScreen({
       return;
     }
 
-    setIsLoading(true);
+    let cancelled = false;
     searchYoutubeInstrumentals('')
       .then((results) => {
+        if (cancelled) return;
         startTransition(() => {
           setOptions(results);
           setError('');
         });
       })
       .catch((cause) => {
+        if (cancelled) return;
         setError(cause instanceof Error ? cause.message : 'Could not load YouTube instrumentals.');
       })
       .finally(() => {
+        if (cancelled) return;
         setIsLoading(false);
       });
+    return () => { cancelled = true; };
   }, []);
 
   const runSearch = async () => {

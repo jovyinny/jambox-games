@@ -21,7 +21,12 @@ interface VsBattleScreenProps {
   onBackToSetup: () => void;
 }
 
-export function VsBattleScreen({
+export function VsBattleScreen(props: VsBattleScreenProps) {
+  const connection = props.spotifyConnections[props.roundIndex % 2 === 0 ? 0 : 1];
+  return <VsBattleSession key={`${props.roundIndex}:${connection?.accessToken ?? ''}:${connection?.subscription ?? ''}`} {...props} />;
+}
+
+function VsBattleSession({
   players,
   spotifyConnections,
   scores,
@@ -35,10 +40,15 @@ export function VsBattleScreen({
 }: VsBattleScreenProps) {
   const currentPlayer = roundIndex % 2 === 0 ? 0 : 1;
   const activeConnection = spotifyConnections[currentPlayer];
-  const activeTrackId = currentTrack?.id || '';
   const [deviceId, setDeviceId] = useState('');
-  const [playbackState, setPlaybackState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [playbackMessage, setPlaybackMessage] = useState('');
+  const [playbackState, setPlaybackState] = useState<'idle' | 'loading' | 'ready' | 'error'>(
+    !activeConnection ? 'idle' : activeConnection.subscription === 'premium' ? 'loading' : 'error',
+  );
+  const [playbackMessage, setPlaybackMessage] = useState(
+    !activeConnection ? '' : activeConnection.subscription === 'premium'
+      ? 'Connecting Spotify Web Playback SDK...'
+      : 'Spotify Premium is required for full in-app playback. Showing preview fallback.',
+  );
   const [isPaused, setIsPaused] = useState(true);
   const playerRef = useRef<SpotifyPlaybackPlayer | null>(null);
   const isPremiumConnected = activeConnection?.subscription === 'premium';
@@ -81,8 +91,6 @@ export function VsBattleScreen({
     if (!currentTrack || !deviceId) {
       return;
     }
-
-    setPlaybackMessage('Starting playback on the Jambox browser player...');
 
     try {
       await transferPlayback();
@@ -132,26 +140,15 @@ export function VsBattleScreen({
   }, []);
 
   useEffect(() => {
-    setDeviceId('');
-    setPlaybackMessage('');
-    setIsPaused(true);
-    playerRef.current?.disconnect();
-    playerRef.current = null;
-
     if (!activeConnection) {
-      setPlaybackState('idle');
       return;
     }
 
     if (!isPremiumConnected) {
-      setPlaybackState('error');
-      setPlaybackMessage('Spotify Premium is required for full in-app playback. Showing preview fallback.');
       return;
     }
 
     let disposed = false;
-    setPlaybackState('loading');
-    setPlaybackMessage('Connecting Spotify Web Playback SDK...');
 
     void loadSpotifyWebPlaybackSdk()
       .then((spotifySdk) => {
@@ -257,12 +254,30 @@ export function VsBattleScreen({
   }, [activeConnection, isPremiumConnected]);
 
   useEffect(() => {
-    if (!activeTrackId || !isPremiumConnected || playbackState !== 'ready') {
+    if (!currentTrack || !deviceId || !isPremiumConnected || playbackState !== 'ready') {
       return;
     }
 
-    void playCurrentTrack();
-  }, [activeTrackId, isPremiumConnected, playCurrentTrack, playbackState]);
+    let cancelled = false;
+    void transferPlayback()
+      .then(() => {
+        if (cancelled) return;
+        return writeSpotifyPlayerState(`/me/player/play?device_id=${encodeURIComponent(deviceId)}`, {
+          uris: [currentTrack.uri],
+        });
+      })
+      .then(() => {
+        if (cancelled) return;
+        setIsPaused(false);
+        setPlaybackMessage(`Now playing: ${currentTrack.name}`);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPlaybackState('error');
+        setPlaybackMessage('Spotify blocked autoplay. Click Enable Audio and try Play on Jambox.');
+      });
+    return () => { cancelled = true; };
+  }, [currentTrack, deviceId, isPremiumConnected, playbackState, transferPlayback, writeSpotifyPlayerState]);
 
   return (
     <section className="phase-screen vs-battle-screen" aria-label="Verzuz Battle Screen">

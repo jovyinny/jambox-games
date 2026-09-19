@@ -53,6 +53,13 @@ describe('App home flow', () => {
 
     expect(screen.getByRole('heading', { name: /verzuz scoreboard/i })).toBeInTheDocument();
     expect(screen.getByText(/dead heat/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /run it back/i }));
+    expect(screen.getByRole('heading', { name: /round 1/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /verzuz scoreboard/i })).not.toBeInTheDocument();
+    const scores = document.querySelectorAll('.vs-score-card strong');
+    expect(scores).toHaveLength(2);
+    scores.forEach((score) => expect(score).toHaveTextContent(/^0$/));
   });
 
   it('can deep-link directly into Verzuz setup from the URL', () => {
