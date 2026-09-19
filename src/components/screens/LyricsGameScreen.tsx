@@ -142,10 +142,15 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
       }
 
       setHostMicStatus('requesting');
+      const runToken = hostRunTokenRef.current;
 
       try {
         streamRef.current?.getTracks().forEach((track) => track.stop());
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (runToken !== hostRunTokenRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
         streamRef.current = stream;
         mimeTypeRef.current = mimeType;
         hostTranscriptionCountRef.current = 0;
@@ -153,6 +158,7 @@ export function LyricsGameScreen({ sessionId, track, onComplete, onBackToSetup }
         setHostMicStatus('listening');
         setHostTranscriptStatus('Laptop mic ready. The host can sing as Player 1.');
       } catch {
+        if (runToken !== hostRunTokenRef.current) return;
         setHostMicStatus('blocked');
         setHostTranscriptStatus('Microphone permission was blocked on the laptop.');
       }
