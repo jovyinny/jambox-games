@@ -41,7 +41,7 @@ function hasUsableLocalStorage() {
   }
 }
 
-if (!hasUsableLocalStorage()) {
+if (typeof window !== 'undefined' && !hasUsableLocalStorage()) {
   Object.defineProperty(window, 'localStorage', {
     configurable: true,
     value: new MemoryStorage(),
@@ -49,5 +49,5 @@ if (!hasUsableLocalStorage()) {
 }
 
 afterEach(() => {
-  window.localStorage.clear();
+  if (typeof window !== 'undefined') window.localStorage.clear();
 });

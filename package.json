@@ -7,6 +7,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "node server/ws-lobby-server.mjs",
     "dev": "node server/dev.mjs",
     "dev:web": "vite --host 0.0.0.0",
     "ws:server": "node server/ws-lobby-server.mjs",

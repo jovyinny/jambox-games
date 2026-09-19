@@ -216,25 +216,25 @@ git commit -m "fix: derive phone endpoints from origin" -m "Keep local and hoste
 
 **Produces:** Node production start command serving static files, SPA fallback, `/health`, `/api/transcribe`, and WebSocket upgrades on one origin; Vite proxies `/ws` and `/api` locally.
 
-- [ ] **Step 1: Write HTTP integration tests around a constructible server**
+- [x] **Step 1: Write HTTP integration tests around a constructible server**
 
 Refactor the server to export a `createJamboxServer({ distDir, openAiApiKey, fetchImpl })` factory while retaining the executable listener entry point. Test `/health` returns JSON, a known built asset is served with a correct content type, unknown client routes return `index.html`, and a transcription request with no key returns the existing safe JSON error.
 
-- [ ] **Step 2: Run the focused server tests and confirm they fail**
+- [x] **Step 2: Run the focused server tests and confirm they fail**
 
 Run: `pnpm vitest run server/ws-lobby-server.test.mjs`
 
 Expected: failure until the factory/static handling exists.
 
-- [ ] **Step 3: Add static serving and SPA fallback safely**
+- [x] **Step 3: Add static serving and SPA fallback safely**
 
 Resolve requested static paths under the configured `distDir`, reject traversal outside it, set content types for HTML/JS/CSS/images/audio, serve static assets before the SPA fallback, and leave `/health`, `/api/transcribe`, and the `WebSocketServer` behavior intact. Cap request-body bytes and reject invalid/unsupported audio payloads before upstream transcription forwarding.
 
-- [ ] **Step 4: Align development and production scripts**
+- [x] **Step 4: Align development and production scripts**
 
 Add a production `start` script that serves `dist`, keep `pnpm dev` as the Vite-plus-Node launcher, and configure Vite proxies for both `/ws` (with `ws: true`) and `/api` to port 8080. Do not hard-code a LAN IP or introduce CORS as a substitute for same-origin routing.
 
-- [ ] **Step 5: Verify the runtime contract**
+- [x] **Step 5: Verify the runtime contract**
 
 Run:
 
@@ -248,12 +248,14 @@ pnpm start
 
 With `pnpm start` running, request `/health`, `/`, and a built asset; verify a WebSocket client can connect at `/ws`. Stop the server cleanly after the check.
 
-- [ ] **Step 6: Commit the same-origin runtime**
+- [x] **Step 6: Commit the same-origin runtime**
 
 ```bash
 git add server/ws-lobby-server.mjs server/ws-lobby-server.test.mjs server/dev.mjs vite.config.ts package.json
 git commit -m "feat: serve jambox from one origin" -m "Proxy API and WebSocket traffic during development."
 ```
+
+Task 4 verification (2026-09-19): 131 tests pass, lint is clean, and build succeeds. Production `pnpm start` returned health JSON, HTML and built JavaScript and accepted `/ws`; `pnpm dev` forwarded both `/api/transcribe` and `/ws`. Tests cover traversal/symlink rejection, malformed/oversized audio, missing configuration, sanitized upstream failures, and a valid 4.5 MiB recording. Physical two-phone testing is still pending.
 
 ### Task 5: Lock down credential-free host and phone game flows
 

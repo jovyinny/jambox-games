@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const childProcesses = [];
 let shuttingDown = false;
@@ -22,6 +23,10 @@ function run(name, command, args) {
   });
 
   childProcesses.push(child);
+  child.on('error', (error) => {
+    console.error(`[${name}] could not start: ${error.message}`);
+    terminate(1);
+  });
   child.on('exit', (code, signal) => {
     if (shuttingDown) {
       return;
@@ -33,18 +38,16 @@ function run(name, command, args) {
       return;
     }
 
-    if (code !== 0) {
-      console.error(`[${name}] exited with code ${code}`);
-      terminate(code ?? 1);
-    }
+    console.error(`[${name}] exited with code ${code}`);
+    terminate(code ?? 1);
   });
 }
 
 const nodeBin = process.execPath;
-const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url));
 
 run('ws', nodeBin, ['server/ws-lobby-server.mjs']);
-run('vite', npxBin, ['vite', '--host', '0.0.0.0']);
+run('vite', nodeBin, [viteBin, '--host', '0.0.0.0']);
 
 process.on('SIGINT', () => terminate(0));
 process.on('SIGTERM', () => terminate(0));
