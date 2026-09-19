@@ -141,12 +141,14 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
   const micLoopRef = useRef<number | null>(null);
   const lastTriggerAtRef = useRef(0);
   const micRunTokenRef = useRef(0);
+  const startRunTokenRef = useRef(0);
   const activePromptCaptureKeyRef = useRef('');
   const activePromptIndexRef = useRef<number | null>(null);
   const promptOnsetsRef = useRef<Record<number, number>>({});
   const hostAttemptsRef = useRef<Record<number, AttemptView>>({});
 
   const [gameState, setGameState] = useState<'ready' | 'countdown' | 'preview' | 'playing'>('ready');
+  const [isStarting, setIsStarting] = useState(false);
   const [activeBeatIndex, setActiveBeatIndex] = useState(0);
   const [countdownLabel, setCountdownLabel] = useState<string | null>(null);
   const [judgements, setJudgements] = useState<Array<OnBeatJudgement | null>>(emptyJudgements);
@@ -169,6 +171,7 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
         audioRef.current.pause();
       }
       micRunTokenRef.current += 1;
+      startRunTokenRef.current += 1;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       void audioContextRef.current?.close();
     };
@@ -411,13 +414,20 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
 
     setMicStatus('requesting');
     setTranscriptionStatus('Requesting computer microphone...');
+    const runToken = ++micRunTokenRef.current;
 
     try {
-      micRunTokenRef.current += 1;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       void audioContextRef.current?.close();
+      streamRef.current = null;
+      mimeTypeRef.current = '';
+      audioContextRef.current = null;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (runToken !== micRunTokenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       mimeTypeRef.current = mimeType;
 
@@ -425,6 +435,9 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
         window.AudioContext ||
         (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtor) {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        mimeTypeRef.current = '';
         setMicStatus('blocked');
         setTranscriptionStatus('Web Audio is not available in this browser.');
         return;
@@ -441,23 +454,23 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
       setMicStatus('listening');
       setTranscriptionStatus('Computer mic ready. Each scored box will record and transcribe here.');
     } catch {
+      if (runToken !== micRunTokenRef.current) return;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      mimeTypeRef.current = '';
+      void audioContextRef.current?.close();
+      audioContextRef.current = null;
       setMicStatus('blocked');
       setTranscriptionStatus('Computer microphone permission was blocked.');
     }
   }, [startMicLoop]);
 
   const handleStart = useCallback(async () => {
-    if (gameState !== 'ready') {
+    if (gameState !== 'ready' || isStarting) {
       return;
     }
-
-    if (micStatus !== 'listening') {
-      await enableComputerMic();
-      if (!streamRef.current || !mimeTypeRef.current) {
-        setTranscriptionStatus('Computer mic is required for transcription. Allow mic access and try again.');
-        return;
-      }
-    }
+    setIsStarting(true);
+    const runToken = ++startRunTokenRef.current;
 
     hasCompletedRef.current = false;
     activePromptCaptureKeyRef.current = '';
@@ -476,17 +489,27 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
     audioRef.current = audio;
     audio.preload = 'auto';
     audio.loop = false;
-    await primeAudio(audio).catch(() => {
-      // Keep gameplay running even if audio metadata fails to load.
-    });
-    audio.currentTime = ON_BEAT_BREAK_START_MS / 1000;
-    void audio.play().catch(() => {
-      // Keep gameplay running even if autoplay is blocked.
-    });
-
-    startWallTimeRef.current = Date.now();
-    rafRef.current = window.requestAnimationFrame(updateLoop);
-  }, [enableComputerMic, gameState, micStatus, primeAudio, totalScoredPrompts, updateLoop]);
+    try {
+      await primeAudio(audio);
+      if (runToken !== startRunTokenRef.current) return;
+      audio.currentTime = ON_BEAT_BREAK_START_MS / 1000;
+      await audio.play();
+      if (runToken !== startRunTokenRef.current) { audio.pause(); return; }
+      startWallTimeRef.current = Date.now();
+      setGameState('countdown');
+      setCountdownLabel('Get Ready');
+      setTranscriptionStatus(micStatus === 'listening'
+        ? 'Computer mic ready for voice scoring.'
+        : 'Manual mode: tap on the beat to score. Microphone is optional.');
+      rafRef.current = window.requestAnimationFrame(updateLoop);
+    } catch {
+      if (runToken !== startRunTokenRef.current) return;
+      audio.pause();
+      setTranscriptionStatus('Could not play the local audio. Check browser audio permissions and try Start Challenge again.');
+    } finally {
+      if (runToken === startRunTokenRef.current) setIsStarting(false);
+    }
+  }, [gameState, isStarting, micStatus, primeAudio, totalScoredPrompts, updateLoop]);
 
   useEffect(() => {
     if (micStatus !== 'listening' || gameState !== 'playing' || !streamRef.current || !mimeTypeRef.current) {
@@ -654,10 +677,10 @@ export function OnBeatGameScreen({ sessionId, difficulty, onComplete, onBackToSe
               </p>
               <p>{transcriptionStatus}</p>
               <div className="phase-actions">
-                <button type="button" className="phase-action" onClick={() => void enableComputerMic()}>
+                <button type="button" className="phase-action" disabled={micStatus === 'requesting' || isStarting} onClick={() => void enableComputerMic()}>
                   {micStatus === 'listening' ? 'Reconnect Computer Mic' : 'Enable Computer Mic'}
                 </button>
-                <button type="button" className="phase-cta" onClick={() => void handleStart()}>
+                <button type="button" className="phase-cta" disabled={isStarting || micStatus === 'requesting'} onClick={() => void handleStart()}>
                   Start Challenge
                 </button>
               </div>
