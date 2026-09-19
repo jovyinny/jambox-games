@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { createInitialState, useAppStore } from './state/store';
@@ -12,6 +12,7 @@ describe('App home flow', () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
 
   it('starts on the lobby screen and routes through launcher into playable games', () => {
@@ -116,5 +117,29 @@ describe('App home flow', () => {
     render(<App />);
 
     expect(document.querySelector('.jam-hero-live-shell__stage-frame')).not.toBeNull();
+  });
+
+  it('opens a valid mobile controller link without media APIs', () => {
+    vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue('iPhone Mobile');
+    window.history.replaceState({}, '', '/?mode=phone&lobby=AB12CD&player=1&game=on_beat');
+    render(<App />);
+    expect(screen.getByRole('region', { name: /phone player waiting screen/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /lobby \+ phone pairing/i })).not.toBeInTheDocument();
+  });
+
+  it('ends a simulated live Jam Hero session and returns to fresh setup', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /back to main menu/i }));
+    fireEvent.click(screen.getByRole('button', { name: /jam hero/i }));
+    fireEvent.click(screen.getByRole('button', { name: /start session/i }));
+    expect(screen.getByRole('heading', { name: /enable live inputs/i })).toBeInTheDocument();
+    // Simulate the live-input boundary; physical permission/calibration stays in the LAN smoke gate.
+    act(() => useAppStore.setState({ gamePhase: 'jam', isSessionRunning: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Dev controls' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(useAppStore.getState().isSessionRunning).toBe(false);
+    expect(screen.getByRole('button', { name: 'Play Again' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Change Setup' }));
+    expect(screen.getByRole('heading', { name: /jam hero setup/i })).toBeInTheDocument();
   });
 });

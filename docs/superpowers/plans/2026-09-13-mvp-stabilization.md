@@ -271,11 +271,11 @@ Task 4 verification (2026-09-19): 131 tests pass, lint is clean, and build succe
 
 **Produces:** Automated coverage proving the baseline games remain navigable with no Spotify, YouTube, or OpenAI credentials.
 
-- [ ] **Step 1: Add route and recovery tests**
+- [x] **Step 1: Add route and recovery tests**
 
 Add tests for: lobby-to-home navigation; bundled Jam Hero setup-to-results; On Beat with a denied microphone and a retry/back action; Know Your Lyrics using `LYRICS_TRACKS` without a YouTube key; and phone controller rendering from a valid phone query without browser media APIs.
 
-- [ ] **Step 2: Run the focused suites and document failures**
+- [x] **Step 2: Run the focused suites and document failures**
 
 Run:
 
@@ -285,11 +285,11 @@ pnpm vitest run src/App.home-flow.test.tsx src/components/lobby/LobbyPairingPane
 
 Expected: only behavior gaps exposed by the new assertions fail.
 
-- [ ] **Step 3: Correct one game-flow defect at a time**
+- [x] **Step 3: Correct one game-flow defect at a time**
 
 For each failure, make the smallest screen or protocol change that preserves a retry/back route, stops media resources on unmount, and returns an actionable permission/transcription message. Re-run the focused test after each correction; do not bundle unrelated game changes.
 
-- [ ] **Step 4: Commit each independently verified flow correction**
+- [x] **Step 4: Commit each independently verified flow correction**
 
 Use one commit per game or pairing correction, for example:
 
@@ -303,6 +303,16 @@ git commit -m "fix: recover from denied on-beat microphone" -m "Keep setup navig
 Run: `pnpm lint && pnpm test && pnpm build`
 
 Then manually run `pnpm dev`, open the displayed LAN URL on two phones, pair them, and complete a round in Jam Hero, On Beat, and a bundled Lyrics track.
+
+Automated evidence (2026-09-19): camera readiness waits for successful playback and has an in-app permission retry; late camera/microphone grants release their tracks after leaving; On Beat can complete in local manual mode and recover from audio playback failure; bundled Lyrics reaches completion without media APIs; mobile links reach controller waiting UI. The Jam Hero route test simulates its live-input boundary, not physical calibration. Real loopback sockets verify a host, two phones and Lyrics message relay.
+
+Remaining device checks (do not mark complete from automated tests):
+
+- [ ] Host browser: grant/deny/retry camera, complete calibration and a Jam Hero round, then replay.
+- [ ] Two physical phones: open the host address, pair both, and receive Lyrics prompts.
+- [ ] Complete an On Beat manual round and a bundled Lyrics round; verify navigation after denied microphone access.
+- [ ] Phone recording: use a trusted HTTPS origin, since plain LAN HTTP may not expose microphone APIs. Verify missing transcription configuration shows an error and preserves navigation.
+- [ ] Record host/phone browsers, results and observed load times before advancing to optional integrations.
 
 ### Task 6: Harden Spotify and YouTube as optional integrations
 

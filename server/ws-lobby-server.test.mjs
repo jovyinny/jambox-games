@@ -43,6 +43,18 @@ function post(body, headers = { 'Content-Type': 'application/json' }) {
   return fetch(`${origin}/api/transcribe`, { method: 'POST', headers, body });
 }
 
+function nextMessage(socket, type) {
+  return new Promise((resolve) => {
+    const receive = (raw) => {
+      const message = JSON.parse(String(raw));
+      if (message.type !== type) return;
+      socket.off('message', receive);
+      resolve(message);
+    };
+    socket.on('message', receive);
+  });
+}
+
 describe('same-origin runtime', () => {
   it('serves health, built assets and client routes on the same listener', async () => {
     await start();
@@ -78,6 +90,34 @@ describe('same-origin runtime', () => {
     expect(JSON.parse(String(raw))).toMatchObject({ type: 'connected', clientId: expect.any(String) });
     socket.close();
     await once(socket, 'close');
+  });
+
+  it('pairs two phones and relays lyrics prompts and attempts without credentials', async () => {
+    await start();
+    const connect = async () => {
+      const socket = new WebSocket(origin.replace('http:', 'ws:') + '/ws');
+      await nextMessage(socket, 'connected');
+      return socket;
+    };
+    const host = await connect();
+    const created = nextMessage(host, 'lobby_state');
+    host.send(JSON.stringify({ type: 'create_lobby' }));
+    const { lobby } = await created;
+    const phones = await Promise.all([connect(), connect()]);
+    for (const [index, phone] of phones.entries()) {
+      const paired = nextMessage(phone, 'paired');
+      phone.send(JSON.stringify({ type: 'pair_phone', lobbyCode: lobby.code, phoneName: `Phone ${index + 1}`, playerSlot: index + 1 }));
+      expect(await paired).toMatchObject({ lobbyCode: lobby.code, playerSlot: index + 1 });
+    }
+    const state = { game: 'lyrics', sessionId: 1, status: 'playing', trackId: 'bundled', trackTitle: 'Bundled Song', promptIndex: 0, promptText: 'Hello', promptStartMs: 1000, promptEndMs: 2000, countdownLabel: null, cueCount: 1 };
+    const received = phones.map((phone) => nextMessage(phone, 'lyrics_state'));
+    host.send(JSON.stringify({ type: 'publish_lyrics_state', state }));
+    for (const message of await Promise.all(received)) expect(message.state).toEqual(state);
+    const attempt = { sessionId: 1, playerSlot: 2, cueIndex: 0, transcript: 'Hello', detectedAtMs: 1500 };
+    const recorded = nextMessage(host, 'lyrics_attempt_recorded');
+    phones[1].send(JSON.stringify({ type: 'submit_lyrics_attempt', attempt }));
+    expect(await recorded).toMatchObject({ attempt });
+    for (const socket of [host, ...phones]) { socket.close(); await once(socket, 'close'); }
   });
 
   it('returns a safe actionable error when transcription is unconfigured', async () => {
