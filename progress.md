@@ -1,3 +1,54 @@
+# Jam Box Games Progress
+
+Last reconciled: 2026-09-26
+
+Implementation baseline reconciled: `48d3e0a`
+
+Active plan: `docs/superpowers/plans/2026-09-13-mvp-stabilization.md`
+
+## MVP Stabilization Status
+
+| Task | Status | Evidence |
+| --- | --- | --- |
+| 1. Reproducible pnpm/test baseline | Complete | `b34f2f4`; frozen pnpm install contract and deterministic test storage |
+| 2. React lifecycle/lint stabilization | Complete | `cd4d012`; lifecycle tests, clean lint, and screen-state corrections |
+| 3. Same-origin client endpoints | Complete | `e37f600`; browser-origin HTTP/WebSocket URL tests |
+| 4. Same-origin Node runtime | Complete | `3327b59`; app/static/API/WebSocket runtime and server integration tests |
+| 5. Credential-free game flows | Automated work complete; device gate pending | `06db5f9`, `8a6306e`, `2ddbca3`, `48d3e0a`; 143 tests across 44 files passed after merge |
+| 6. Optional Spotify/YouTube hardening | Not started | Blocked by Task 5 physical-device evidence |
+| 7. Phone-ready release certification | Not started | Requires Tasks 5–6 and the final device checklist |
+
+## Latest Verified Gates
+
+- `pnpm lint`: passed with zero errors and warnings on `48d3e0a`.
+- `pnpm test`: passed, 143/143 tests across 44 files on `48d3e0a`.
+- `pnpm build`: passed on `48d3e0a`; the existing large-chunk advisory remains for measured phone testing.
+- `pnpm start`: previously smoke-tested `/health`, `/`, a built asset, and `/ws` on one origin.
+- `pnpm dev`: previously smoke-tested `/api/transcribe` and `/ws` through Vite proxies.
+- Local integration coverage pairs one host and two simulated phones and relays Lyrics state/attempts.
+
+## README Showcase Checkpoint
+
+- [x] Capture the current launcher and game setup screens from the built app with Playwright.
+- [x] Capture a real WebSocket lobby with a paired mobile controller.
+- [x] Store the reviewed screenshots under `public/assets/readme/`.
+- [x] Replace the outdated single-game README with the current four-mode experience and pnpm workflow.
+- [x] Verify the production build and every README asset reference.
+
+## Current Blocker / Next Checkpoint
+
+Task 5 is not complete until the physical-device checks are recorded:
+
+- [ ] Grant, deny, and retry camera access on the host; complete Jam Hero calibration, a round, and replay.
+- [ ] Pair two physical phones from the displayed LAN/HTTPS address and receive Lyrics prompts.
+- [ ] Complete an On Beat manual round and a bundled Lyrics round; confirm denied microphone access preserves navigation.
+- [ ] Verify phone recording on a trusted HTTPS origin and confirm missing transcription configuration is recoverable.
+- [ ] Record host/phone browser versions, results, bundle load time, and any failures.
+
+Do not mark Task 5 complete or begin release certification from automated evidence alone. The detailed checklist lives in the active implementation plan.
+
+## Historical Project Record
+
 Original prompt: checkout the changes we made to improve the UI below. we implemented the detailed jam session with a great visual. I want you to implement the rest of the screens following the design and style we've created, do not stray from the design use it as a strict guideline.
 
 ## Completed

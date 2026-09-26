@@ -10,6 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-13-mvp-stabilization-design.md`
 
+## Current Progress (reconciled 2026-09-26)
+
+- Tasks 1–4 are complete and merged to `main` through `3327b59`.
+- Task 5 automated corrections and coverage are complete and merged through `48d3e0a`; its physical host/two-phone gate remains open.
+- Tasks 6–7 have not started.
+- Latest post-merge evidence on `48d3e0a`: `pnpm lint` passed, `pnpm test` passed 143/143 tests across 44 files, and `pnpm build` passed with the existing large-chunk advisory.
+
 ## Global Constraints
 
 - Use pnpm exclusively; do not recreate or commit `package-lock.json`.
@@ -203,6 +210,8 @@ git add src/network/runtimeOrigin.ts src/network/runtimeOrigin.test.ts src/netwo
 git commit -m "fix: derive phone endpoints from origin" -m "Keep local and hosted clients on one runtime contract."
 ```
 
+Task 3 completed in `e37f600`. Focused endpoint/pairing tests passed 11/11; the full suite passed 119/119 with clean lint and a successful build.
+
 ### Task 4: Make the Node server a same-origin production runtime
 
 **Files:**
@@ -306,6 +315,8 @@ Then manually run `pnpm dev`, open the displayed LAN URL on two phones, pair the
 
 Automated evidence (2026-09-19): camera readiness waits for successful playback and has an in-app permission retry; late camera/microphone grants release their tracks after leaving; On Beat can complete in local manual mode and recover from audio playback failure; bundled Lyrics reaches completion without media APIs; mobile links reach controller waiting UI. The Jam Hero route test simulates its live-input boundary, not physical calibration. Real loopback sockets verify a host, two phones and Lyrics message relay.
 
+Task 5 automated work was committed separately in `06db5f9`, `8a6306e`, `2ddbca3`, and `48d3e0a`, then fast-forwarded to `main`. Post-merge verification passed 143/143 tests across 44 files, clean lint, and a production build. Step 5 remains unchecked because physical-device evidence has not been supplied.
+
 Remaining device checks (do not mark complete from automated tests):
 
 - [ ] Host browser: grant/deny/retry camera, complete calibration and a Jam Hero round, then replay.
@@ -401,6 +412,8 @@ git commit -m "docs: add MVP LAN release checklist" -m "Document local operation
 If measured code splitting is required, make it a separate commit with its own focused route test and one-line performance rationale.
 
 ## Final Acceptance Checklist
+
+Status note (2026-09-26): the automated commands and same-origin runtime have prior passing evidence, but these final checkboxes remain open until Task 7 performs the clean release rerun and records physical-device results.
 
 - [ ] `pnpm install --frozen-lockfile` succeeds from a clean checkout.
 - [ ] `pnpm lint` succeeds with zero errors and warnings.

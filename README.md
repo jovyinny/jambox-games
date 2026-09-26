@@ -1,192 +1,139 @@
-# AI Garage Band (MVP)
+<p align="center">
+  <img src="public/jambox-games-logo.png" alt="Jam Box Games" width="260" />
+</p>
 
-Local web demo where 2-3 people in one webcam frame are assigned virtual instruments and movement drives in-key, quantized music in real time.
+<h1 align="center">Jam Box Games</h1>
 
-## Tech Stack
+<p align="center">
+  A local-first music party arcade: run the host on a laptop or TV, pair player phones,
+  and jump into rhythm, battle, and lyric games.
+</p>
 
-- Vite + React + TypeScript
-- TensorFlow.js MoveNet MultiPose (`@tensorflow-models/pose-detection`)
-- Tone.js for browser audio synthesis
-- Zustand for realtime state
-- Vitest + Testing Library for tests
+![Jam Box Games launcher with Jam Hero, Vs., On Beat, and Know Your Lyrics](public/assets/readme/game-launcher.png)
 
-## Features Implemented
+## The experience
 
-- Webcam capture and overlay canvas pipeline
-- MoveNet multipose inference loop (targeting ~30Hz cadence)
-- Zone assignment (Left/Middle/Right) with hysteresis and missing-person reacquire
-- Calibration flow: raise both hands for ~2 seconds to lock zone anchors
-- Motion feature extraction per zone:
-  - wrist velocity
-  - torso/hip center Y
-  - shoulder-to-wrist angle
-  - rolling energy metric
-- Music engine:
-  - transport + quantization helpers
-  - drum/bass/pad synth instruments
-  - deterministic conductor (A minor, Am-F-C-G progression)
-  - feature-to-event mapping with debounce and idle support
-- UI controls:
-  - Start/Stop
-  - BPM (80-140)
-  - Quantization (1/4, 1/8, 1/16)
-  - Skeleton overlay toggle
-  - AI Conductor toggle
-  - Calibration trigger
-- Diagnostics panel:
-  - FPS
-  - inference time
-  - current chord
-  - person count
-  - per-zone energy
-  - movement-to-audio scheduling delay
+Jam Box Games is designed for a room, not a solo browser tab. The host screen runs the lobby and game, while phones join as private controllers and microphone inputs over the same network.
 
-## Project Structure
+`Host screen → create lobby → pair phones → choose a game → play together`
 
-```text
-src/
-  components/
-    CameraView.tsx
-    Controls.tsx
-    Diagnostics.tsx
-    OverlayCanvas.tsx
-  music/
-    conductor.ts
-    instruments.ts
-    mapping.ts
-    transport.ts
-  pose/
-    features.ts
-    movenet.ts
-    zoning.ts
-  state/
-    store.ts
-  App.tsx
-server/
-  ws-lobby-server.mjs
-```
+<table>
+  <tr>
+    <td width="66%">
+      <img src="public/assets/readme/lobby-pairing.png" alt="Connected host lobby with one paired phone" />
+    </td>
+    <td width="34%">
+      <img src="public/assets/readme/phone-controller.png" alt="Paired player phone controller waiting for the host" />
+    </td>
+  </tr>
+</table>
 
-## Setup
+1. Open the lobby on the host and select **Connect WS**.
+2. Select **Create Lobby**, then open a displayed player link on a phone.
+3. Return to the main menu and choose a game. Phone controls update with the round.
+
+## Four playable modes
+
+| Mode | How it plays |
+| --- | --- |
+| **Jam Hero** | Two or three players move in one camera frame to perform drum, bass, and pad parts. Pose tracking turns motion into quantized musical events. |
+| **Vs.** | Two players build Spotify queues and face off song-for-song across themed battle cards. |
+| **On Beat** | Players say the prompted word into their phones and score by landing it on the beat. |
+| **Know Your Lyrics** | Players complete lyric lines against timed cues, with automatic or manual transcription. |
+
+<table>
+  <tr>
+    <td><img src="public/assets/readme/jam-hero-setup.png" alt="Jam Hero setup screen" /></td>
+    <td><img src="public/assets/readme/on-beat-setup.png" alt="On Beat setup screen" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Full-body rhythm play</strong></td>
+    <td align="center"><strong>Phone-powered timing challenges</strong></td>
+  </tr>
+</table>
+
+![Know Your Lyrics song browser and setup](public/assets/readme/lyrics-setup.png)
+
+## Run it locally
+
+Requirements: Node.js 20+, pnpm, and a current Chromium-based browser.
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open the local URL shown by Vite (usually `http://localhost:5173`).
+Open the Vite URL shown in the terminal, normally `http://localhost:5173`. `pnpm dev` starts both the web app and its WebSocket lobby server.
 
-For phone pairing, open the same app URL on a phone on the same network and use the Setup screen pairing panel.
+To pair real phones, put them on the host's network and open the LAN URL printed by Vite. Camera and microphone access on a non-`localhost` phone URL may require a trusted HTTPS origin; a local tunnel is the simplest option.
 
-## Demo Flow
-
-1. Click `Start`.
-2. Allow camera permission.
-3. If audio is blocked, click `Start` again after interacting with the page.
-4. Stand participants in left/middle/right regions.
-5. Click `Calibrate`, raise both hands for ~2 seconds.
-6. Move arms/body to trigger drum/bass/pad events.
-
-## Recommended Demo Environment
-
-- Browser: latest Chrome or Edge
-- Device: laptop with integrated webcam
-- Participants: 2-3 people, shoulder-to-knee visible
-- Distance: ~1.8-3 meters from webcam
-- Camera height: chest-to-head level, centered
-- Lighting: bright, front-lit, minimal backlight
-- Background: uncluttered, avoid moving objects behind players
-
-## Controls
-
-- `Start/Stop`: starts webcam + audio transport
-- `BPM`: 80-140
-- `Quantization`: `1/4`, `1/8` (default), `1/16`
-- `Skeleton`: show/hide pose skeleton overlay
-- `AI Conductor`: keep deterministic assist layer on/off
-- `Calibrate`: zone anchor lock using raised-hands gesture
-
-## Know Your Lyrics (MVP)
-
-- Host flow: `Home -> Know Your Lyrics -> Start Lyrics Mode`
-- Phone flow: pair phone, then speak each line shown in the phone controller while the host plays the instrumental.
-- Scoring combines:
-  - lyric overlap (token sequence match)
-  - timing offset (spoken line time vs cue midpoint)
-
-### Import Instrumentals + Timestamped Lyrics
-
-This MVP includes a local importer for YouTube instrumentals and `.lrc` timestamp files.
-
-1. Install `yt-dlp` on your machine.
-2. Create an `.lrc` file with `[mm:ss.xx] lyric line` entries.
-3. Run:
+For a production-style local run:
 
 ```bash
-node server/import-lyrics-track.mjs \
+pnpm build
+pnpm start
+```
+
+The built app and WebSocket endpoint are served together on `http://localhost:8080` by default.
+
+## Optional service setup
+
+The core app, lobby, Jam Hero, local On Beat audio, and bundled lyric demo work locally. These variables unlock external services:
+
+| Variable | Enables |
+| --- | --- |
+| `VITE_SPOTIFY_CLIENT_ID` | Spotify sign-in and queue management for Vs. |
+| `VITE_SPOTIFY_REDIRECT_URI` | Custom Spotify callback/app origin when needed |
+| `VITE_YOUTUBE_API_KEY` | YouTube instrumental search in Know Your Lyrics (`VITE_YOUTUBE_KEY` is also accepted) |
+| `OPENAI_API_KEY` | Server-side microphone transcription for On Beat and Know Your Lyrics |
+| `OPENAI_TRANSCRIPTION_MODEL` | Optional transcription-model override; defaults to `gpt-4o-mini-transcribe` |
+| `VITE_WS_URL` | Custom WebSocket endpoint; normally leave unset so `/ws` uses the app origin |
+
+Put local values in `.env.local`. Do not commit credentials.
+
+## Jam Hero demo setup
+
+- Use the latest Chrome or Edge with camera permission enabled.
+- Frame two or three people from roughly shoulders to knees.
+- Stand about 1.8–3 metres from a centered camera in bright, front-facing light.
+- Start a session, grant camera/audio access, then complete or skip calibration.
+- Stay in the left, middle, or right lane and move to trigger its instrument.
+
+Jam Hero uses TensorFlow.js MoveNet MultiPose, Tone.js, deterministic in-key accompaniment, zone hysteresis, and movement-based scoring. The music layer does not make LLM calls.
+
+## Import a lyrics track
+
+Know Your Lyrics includes a local importer for a YouTube instrumental plus an `.lrc` timestamp file. Install `yt-dlp`, then run:
+
+```bash
+pnpm lyrics:import -- \
   --youtube "https://www.youtube.com/watch?v=YOUR_VIDEO_ID" \
   --title "Song Title" \
   --artist "Artist Name" \
-  --lrc "/absolute/or/relative/path/to/song.lrc"
+  --lrc "/path/to/song.lrc"
 ```
 
-The command downloads audio to `public/audio/lyrics/<track-id>.mp3` and injects the new track into `src/game/lyricsCatalog.generated.ts`.
+The importer downloads the audio to `public/audio/lyrics/` and adds the track metadata to `src/game/lyricsCatalog.generated.ts`.
 
-### Live YouTube Song Browser
-
-`Know Your Lyrics` now supports live YouTube instrumental browsing and search in the setup screen.
-
-- Add `VITE_YOUTUBE_API_KEY` or `VITE_YOUTUBE_KEY` to your local env to enable YouTube search/top results.
-- Song search uses YouTube Data API `search.list` plus `videos.list`.
-- Lyrics are fetched on selection from `lyrics.ovh`, then split into blind scoring rounds automatically.
-
-Example:
+## Development commands
 
 ```bash
-VITE_YOUTUBE_API_KEY=your_key_here
+pnpm dev       # Vite and the local lobby server
+pnpm test      # Vitest suite
+pnpm lint      # ESLint
+pnpm build     # Type-check and production bundle
+pnpm start     # Serve the production bundle and /ws endpoint
 ```
 
 ## Troubleshooting
 
-### Camera permission denied
-- Reload the page and allow camera access.
-- Check browser site permissions and OS camera privacy settings.
+- **Camera or microphone denied:** reload, allow the browser permission, and check OS privacy settings. Mobile browsers usually require HTTPS away from `localhost`.
+- **No audio:** interact with the page and start the session again; browsers require a user gesture before audio playback.
+- **Phone cannot pair:** use the same host URL on both devices, confirm **Connect WS** shows connected, and check that port `8080` is free for the lobby server.
+- **Pose tracking is unstable:** improve front lighting, avoid players crossing each other, and keep full bodies in frame.
+- **High CPU or lag:** use two players, close heavy tabs, and lower the camera resolution.
+- **WebGL fails:** the pose pipeline falls back to WASM and then CPU, with reduced performance.
 
-### WebGL backend fails
-- The app attempts fallback from `webgl` to `wasm` and then `cpu`.
-- Performance will drop on `wasm/cpu`; reduce motion complexity or participant count.
+## Stack
 
-### No audio playback
-- Browser audio requires user gesture. Click `Start` from a direct page interaction.
-- Ensure system output device is active and not muted.
-
-### Pose unstable / frequent dropouts
-- Increase front lighting.
-- Reduce occlusion (avoid people crossing directly in front of each other).
-- Keep all participants fully in frame.
-
-### High CPU or lag
-- Use 2 participants instead of 3.
-- Close other browser tabs/apps.
-- Lower webcam resolution in browser/device settings if needed.
-
-## Scripts
-
-```bash
-pnpm dev
-pnpm test
-pnpm build
-```
-
-## WebSocket Lobby + Pairing
-
-- `pnpm dev` starts both the Vite app server and the lobby WebSocket server together.
-- The browser connects to the lobby over the same app origin at `/ws`, so phone pairing works over local network URLs and Cloudflare tunnels without exposing a second public port.
-- In the app Setup screen, use **Lobby + Phone Pairing**:
-  - Host/TV: connect, create a lobby, create one or more rooms.
-  - Phone: connect, enter lobby code + room pair code, then pair.
-- Override socket URL in frontend with `VITE_WS_URL` only if you need a custom endpoint.
-- If you tunnel the app with Cloudflare, use the tunneled app URL on the phone. The `/ws` socket will ride the same origin automatically.
-
-## Notes
-
-- Conductor behavior is deterministic rule logic (no LLM calls).
+Vite, React, TypeScript, TensorFlow.js MoveNet, Tone.js, Zustand, WebSockets, Vitest, and Testing Library.
