@@ -27,6 +27,14 @@ Active plan: `docs/superpowers/plans/2026-09-13-mvp-stabilization.md`
 - `pnpm dev`: previously smoke-tested `/api/transcribe` and `/ws` through Vite proxies.
 - Local integration coverage pairs one host and two simulated phones and relays Lyrics state/attempts.
 
+## README Showcase Checkpoint
+
+- [x] Capture the current launcher and game setup screens from the built app with Playwright.
+- [x] Capture a real WebSocket lobby with a paired mobile controller.
+- [x] Store the reviewed screenshots under `public/assets/readme/`.
+- [x] Replace the outdated single-game README with the current four-mode experience and pnpm workflow.
+- [x] Verify the production build and every README asset reference.
+
 ## Current Blocker / Next Checkpoint
 
 Task 5 is not complete until the physical-device checks are recorded:
