@@ -47,6 +47,13 @@ Task 5 is not complete until the physical-device checks are recorded:
 
 Do not mark Task 5 complete or begin release certification from automated evidence alone. The detailed checklist lives in the active implementation plan.
 
+## Continuous Integration Checkpoint
+
+- [x] Run frozen pnpm installs for pushes and pull requests targeting `main`.
+- [x] Enforce lint, test, and production-build gates in GitHub Actions.
+- [x] Keep workflow permissions read-only and cancel superseded runs.
+- [x] Validate the workflow locally and record the passing gates.
+
 ## Historical Project Record
 
 Original prompt: checkout the changes we made to improve the UI below. we implemented the detailed jam session with a great visual. I want you to implement the rest of the screens following the design and style we've created, do not stray from the design use it as a strict guideline.
